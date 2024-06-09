@@ -12,16 +12,26 @@ import logging
 from logging import Formatter, FileHandler
 from flask_wtf import Form
 from forms import *
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.types import Integer, String, Boolean
+
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
 
+class Base(DeclarativeBase):
+    pass
+
+db = SQLAlchemy(model_class=Base)
+
+# Create the app
 app = Flask(__name__)
+
 moment = Moment(app)
 app.config.from_object('config')
-db = SQLAlchemy(app)
 
-# TODO: connect to a local postgresql database
+# Initialize the app with the extension
+db.init_app(app)
 
 #----------------------------------------------------------------------------#
 # Models.
@@ -30,28 +40,28 @@ db = SQLAlchemy(app)
 class Venue(db.Model):
     __tablename__ = 'Venue'
 
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-    city = db.Column(db.String(120))
-    state = db.Column(db.String(120))
-    address = db.Column(db.String(120))
-    phone = db.Column(db.String(120))
-    image_link = db.Column(db.String(500))
-    facebook_link = db.Column(db.String(120))
+    id: Mapped[int] = mapped_column(Integer(), primary_key=True)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    city: Mapped[str] = mapped_column(String(120), nullable=False)
+    state: Mapped[str] = mapped_column(String(120), nullable=False)
+    address: Mapped[str] = mapped_column(String(120), nullable=False)
+    phone: Mapped[str] = mapped_column(String(120), nullable=False)
+    image_link: Mapped[str] = mapped_column(String(500), nullable=False)
+    facebook_link: Mapped[str] = mapped_column(String(120), nullable=False)
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
 class Artist(db.Model):
     __tablename__ = 'Artist'
 
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-    city = db.Column(db.String(120))
-    state = db.Column(db.String(120))
-    phone = db.Column(db.String(120))
-    genres = db.Column(db.String(120))
-    image_link = db.Column(db.String(500))
-    facebook_link = db.Column(db.String(120))
+    id: Mapped[int] = mapped_column(Integer(), primary_key=True)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    city: Mapped[str] = mapped_column(String(120), nullable=False)
+    state: Mapped[str] = mapped_column(String(120), nullable=False)
+    phone: Mapped[str] = mapped_column(String(120), nullable=False)
+    genres: Mapped[str] = mapped_column(String(120), nullable=False)
+    image_link: Mapped[str] = mapped_column(String(500), nullable=False)
+    facebook_link: Mapped[str] = mapped_column(String(120), nullable=False)
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
