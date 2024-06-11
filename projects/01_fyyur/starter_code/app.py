@@ -6,6 +6,7 @@ import json
 import dateutil.parser
 import babel
 from flask import Flask, render_template, request, Response, flash, redirect, url_for
+from flask_migrate import Migrate
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 import logging
@@ -27,8 +28,12 @@ db = SQLAlchemy(model_class=Base)
 # Create the app
 app = Flask(__name__)
 
+# Flask-Moment library is used to facilitate the formatting and display of dates and times
 moment = Moment(app)
 app.config.from_object('config')
+
+# Adding the Flask_Migrate
+migrate = Migrate(app, db)
 
 # Initialize the app with the extension
 db.init_app(app)
