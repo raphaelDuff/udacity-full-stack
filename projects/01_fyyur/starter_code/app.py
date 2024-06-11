@@ -43,7 +43,7 @@ db.init_app(app)
 #----------------------------------------------------------------------------#
 
 class Venue(db.Model):
-    __tablename__ = 'Venue'
+    __tablename__ = 'venue'
 
     id: Mapped[int] = mapped_column(Integer(), primary_key=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
@@ -57,7 +57,7 @@ class Venue(db.Model):
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
 class Artist(db.Model):
-    __tablename__ = 'Artist'
+    __tablename__ = 'artist'
 
     id: Mapped[int] = mapped_column(Integer(), primary_key=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
