@@ -74,6 +74,11 @@ class Artist(db.Model):
     genres: Mapped[str] = mapped_column(String(120), nullable=False)
     image_link: Mapped[str] = mapped_column(String(500), nullable=False)
     facebook_link: Mapped[str] = mapped_column(String(120), nullable=False)
+    seeking_venue: Mapped[bool] = mapped_column(Boolean, default=True)
+    seeking_description:  Mapped[Optional[str]]
+    website: Mapped[str] = mapped_column(String(120), nullable=False)
+    #past_shows_count: Mapped[int] = mapped_column(Integer(), nullable=False)
+    #upcoming_shows_count: Mapped[int] = mapped_column(Integer(), nullable=False)
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
