@@ -3,6 +3,7 @@
 #----------------------------------------------------------------------------#
 
 import json
+from datetime import datetime
 import dateutil.parser
 import babel
 from flask import Flask, render_template, request, Response, flash, redirect, url_for
@@ -14,7 +15,7 @@ from logging import Formatter, FileHandler
 from flask_wtf import Form
 from forms import *
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy.types import Integer, String, Boolean
+from sqlalchemy import Boolean, ForeignKey, Integer, String 
 from typing import Optional
 
 #----------------------------------------------------------------------------#
@@ -46,7 +47,7 @@ db.init_app(app)
 class Venue(db.Model):
     __tablename__ = 'venue'
 
-    id: Mapped[int] = mapped_column(Integer(), primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     genres: Mapped[str] = mapped_column(String(120), nullable=False)
     city: Mapped[str] = mapped_column(String(120), nullable=False)
@@ -66,7 +67,7 @@ class Venue(db.Model):
 class Artist(db.Model):
     __tablename__ = 'artist'
 
-    id: Mapped[int] = mapped_column(Integer(), primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     city: Mapped[str] = mapped_column(String(120), nullable=False)
     state: Mapped[str] = mapped_column(String(120), nullable=False)
@@ -83,6 +84,14 @@ class Artist(db.Model):
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
 # TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
+
+class Show(db.Model):
+   __tablename__ = 'show'
+
+   id: Mapped[int] = mapped_column(Integer(), primary_key=True)
+   venue_id: Mapped[int] = mapped_column(Integer, ForeignKey("venue.id"), nullable=False)
+   artist_id: Mapped[int] = mapped_column(Integer, ForeignKey("artist.id"), nullable=False)
+   start_time: Mapped[datetime]
 
 #----------------------------------------------------------------------------#
 # Filters.
