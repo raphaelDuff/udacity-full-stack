@@ -6,14 +6,24 @@ import json
 from datetime import datetime
 import dateutil.parser
 import babel
-from flask import Flask, render_template, request, Response, flash, redirect, url_for
+from flask import (
+    Flask,
+    render_template,
+    request,
+    Response,
+    flash,
+    redirect,
+    session,
+    url_for,
+)
 from flask_migrate import Migrate
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 import logging
 from logging import Formatter, FileHandler
-from flask_wtf import Form
+from flask_wtf import CSRFProtect
 from forms import *
+import os
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, select, String, Table
 from typing import Optional
@@ -347,22 +357,10 @@ def delete_venue(venue_id):
 #  ----------------------------------------------------------------
 @app.route("/artists")
 def artists():
-    # TODO: replace with real data returned from querying the database
-    data = [
-        {
-            "id": 4,
-            "name": "Guns N Petals",
-        },
-        {
-            "id": 5,
-            "name": "Matt Quevedo",
-        },
-        {
-            "id": 6,
-            "name": "The Wild Sax Band",
-        },
-    ]
-    return render_template("pages/artists.html", artists=data)
+
+    stmt_select_all_artists = select(Artist).order_by(Artist.name)
+    data_artists = db.session.scalars(stmt_select_all_artists).all()
+    return render_template("pages/artists.html", artists=data_artists)
 
 
 @app.route("/artists/search", methods=["POST"])
@@ -389,84 +387,11 @@ def search_artists():
 
 @app.route("/artists/<int:artist_id>")
 def show_artist(artist_id):
-    # shows the artist page with the given artist_id
-    # TODO: replace with real artist data from the artist table, using artist_id
-    # data1={
-    #   "id": 4,
-    #   "name": "Guns N Petals",
-    #   "genres": ["Rock n Roll"],
-    #   "city": "San Francisco",
-    #   "state": "CA",
-    #   "phone": "326-123-5000",
-    #   "website": "https://www.gunsnpetalsband.com",
-    #   "facebook_link": "https://www.facebook.com/GunsNPetals",
-    #   "seeking_venue": True,
-    #   "seeking_description": "Looking for shows to perform at in the San Francisco Bay Area!",
-    #   "image_link": "https://images.unsplash.com/photo-1549213783-8284d0336c4f?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=300&q=80",
-    #   "past_shows": [{
-    #     "venue_id": 1,
-    #     "venue_name": "The Musical Hop",
-    #     "venue_image_link": "https://images.unsplash.com/photo-1543900694-133f37abaaa5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=400&q=60",
-    #     "start_time": "2019-05-21T21:30:00.000Z"
-    #   }],
-    #   "upcoming_shows": [],
-    #   "past_shows_count": 1,
-    #   "upcoming_shows_count": 0,
-    # }
 
-    data = db_add_initial_artists()
-    # data2={
-    #   "id": 5,
-    #   "name": "Matt Quevedo",
-    #   "genres": ["Jazz"],
-    #   "city": "New York",
-    #   "state": "NY",
-    #   "phone": "300-400-5000",
-    #   "facebook_link": "https://www.facebook.com/mattquevedo923251523",
-    #   "seeking_venue": False,
-    #   "image_link": "https://images.unsplash.com/photo-1495223153807-b916f75de8c5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=334&q=80",
-    #   "past_shows": [{
-    #     "venue_id": 3,
-    #     "venue_name": "Park Square Live Music & Coffee",
-    #     "venue_image_link": "https://images.unsplash.com/photo-1485686531765-ba63b07845a7?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=747&q=80",
-    #     "start_time": "2019-06-15T23:00:00.000Z"
-    #   }],
-    #   "upcoming_shows": [],
-    #   "past_shows_count": 1,
-    #   "upcoming_shows_count": 0,
-    # }
-    # data3={
-    #   "id": 6,
-    #   "name": "The Wild Sax Band",
-    #   "genres": ["Jazz", "Classical"],
-    #   "city": "San Francisco",
-    #   "state": "CA",
-    #   "phone": "432-325-5432",
-    #   "seeking_venue": False,
-    #   "image_link": "https://images.unsplash.com/photo-1558369981-f9ca78462e61?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=794&q=80",
-    #   "past_shows": [],
-    #   "upcoming_shows": [{
-    #     "venue_id": 3,
-    #     "venue_name": "Park Square Live Music & Coffee",
-    #     "venue_image_link": "https://images.unsplash.com/photo-1485686531765-ba63b07845a7?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=747&q=80",
-    #     "start_time": "2035-04-01T20:00:00.000Z"
-    #   }, {
-    #     "venue_id": 3,
-    #     "venue_name": "Park Square Live Music & Coffee",
-    #     "venue_image_link": "https://images.unsplash.com/photo-1485686531765-ba63b07845a7?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=747&q=80",
-    #     "start_time": "2035-04-08T20:00:00.000Z"
-    #   }, {
-    #     "venue_id": 3,
-    #     "venue_name": "Park Square Live Music & Coffee",
-    #     "venue_image_link": "https://images.unsplash.com/photo-1485686531765-ba63b07845a7?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=747&q=80",
-    #     "start_time": "2035-04-15T20:00:00.000Z"
-    #   }],
-    #   "past_shows_count": 0,
-    #   "upcoming_shows_count": 3,
-    # }
+    # TODO - ADD the upcoming and past shows count
+    stmt_select_artist_by_id = select(Artist).where(Artist.id == artist_id)
+    data_by_id = db.session.scalars(stmt_select_artist_by_id).one()
 
-    # data_by_id = list(filter(lambda d: d["id"] == artist_id, data))[0]
-    data_by_id = db.session.scalars(select(Artist).where(Artist.id == artist_id)).one()
     return render_template("pages/show_artist.html", artist=data_by_id)
 
 
@@ -489,7 +414,13 @@ def edit_artist(artist_id):
         "image_link": "https://images.unsplash.com/photo-1549213783-8284d0336c4f?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=300&q=80",
     }
     # TODO: populate form with fields from artist with ID <artist_id>
-    return render_template("forms/edit_artist.html", form=form, artist=artist)
+
+    stmt_select_artist_by_id = select(Artist).where(Artist.id == artist_id)
+    data_artist_by_id = db.session.scalars(stmt_select_artist_by_id).one()
+
+    return render_template(
+        "forms/edit_artist.html", form=form, artist=data_artist_by_id
+    )
 
 
 @app.route("/artists/<int:artist_id>/edit", methods=["POST"])
@@ -497,7 +428,31 @@ def edit_artist_submission(artist_id):
     # TODO: take values from the form submitted, and update existing
     # artist record with ID <artist_id> using the new attributes
 
-    return redirect(url_for("show_artist", artist_id=artist_id))
+    # TODO: try to pre fill the values with the old values
+
+    stmt_select_artist_by_id = select(Artist).where(Artist.id == artist_id)
+    artist = db.session.scalars(stmt_select_artist_by_id).one()
+
+    form = ArtistForm()
+
+    if form.validate_on_submit():
+        stmt_select_genres = select(Genre).where(Genre.name.in_(form.genres.data))
+        genres = db.session.scalars(stmt_select_genres).all()
+        artist.name = form.name.data
+        artist.city = form.city.data
+        artist.state = form.state.data
+        artist.phone = form.phone.data
+        artist.genres = genres
+        artist.facebook_link = form.facebook_link.data
+        artist.image_link = form.image_link.data
+        artist.website = form.website_link.data
+        artist.seeking_venue = form.seeking_venue.data
+        artist.seeking_description = form.seeking_description.data
+
+        db.session.commit()
+        flash("Artist updated successfully!", "success")
+
+    return redirect(url_for("show_artist", artist_id=artist.id))
 
 
 @app.route("/venues/<int:venue_id>/edit", methods=["GET"])
@@ -649,11 +604,27 @@ if not app.debug:
 
 
 def db_add_initial_artists():
+
+    # Addint to db
+    # try:
+    #     db.session.add(artist_guns)
+    #     db.session.add(artist_quevedo)
+    #     db.session.add(artist_sax)
+    #     db.session.commit()
+    # except:
+    #     db.session.rollback()
+    # finally:
+    #     db.session.close()
+
+    genre_rock = Genre(name="Rock n Roll")
+    genre_jazz = Genre(name="Jazz")
+    genre_classical = Genre(name="Classical")
+
     # Guns n Petals
     artist_guns = Artist(
         id=4,
         name="Guns N Petals",
-        genres="Rock n Roll",
+        genres=[genre_rock],
         city="San Francisco",
         state="CA",
         phone="326-123-5000",
@@ -671,7 +642,7 @@ def db_add_initial_artists():
     artist_quevedo = Artist(
         id=5,
         name="Matt Quevedo",
-        genres="Jazz",
+        genres=[genre_jazz],
         city="New York",
         state="NY",
         phone="300-400-5000",
@@ -689,7 +660,7 @@ def db_add_initial_artists():
     artist_sax = Artist(
         id=6,
         name="The Wild Sax Band",
-        genres="Jazz, Classical",
+        genres=[genre_jazz, genre_classical],
         city="San Francisco",
         state="CA",
         phone="432-325-5432",
@@ -701,15 +672,19 @@ def db_add_initial_artists():
     )
 
     # Addint to db
-    # try:
-    #     db.session.add(artist_guns)
-    #     db.session.add(artist_quevedo)
-    #     db.session.add(artist_sax)
-    #     db.session.commit()
-    # except:
-    #     db.session.rollback()
-    # finally:
-    #     db.session.close()
+    try:
+        db.session.add(genre_rock)
+        db.session.add(genre_jazz)
+        db.session.add(genre_classical)
+
+        db.session.add(artist_guns)
+        db.session.add(artist_quevedo)
+        db.session.add(artist_sax)
+        db.session.commit()
+    except:
+        db.session.rollback()
+    finally:
+        db.session.close()
 
     # Adding extra fields that are not inclued in db model
 
@@ -772,8 +747,8 @@ def db_add_initial_artists():
 
 # Default port:
 if __name__ == "__main__":
-    data = db_add_initial_artists()
-    app.run()
+    # data = db_add_initial_artists()
+    app.run(debug=True)
 
 # Or specify port manually:
 """
