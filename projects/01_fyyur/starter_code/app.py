@@ -21,7 +21,6 @@ from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 import logging
 from logging import Formatter, FileHandler
-from flask_wtf import CSRFProtect
 from forms import *
 from models import (
     artist_genre_association,
@@ -321,19 +320,6 @@ def show_artist(artist_id):
 @app.route("/artists/<int:artist_id>/edit", methods=["GET"])
 def edit_artist(artist_id):
     form = ArtistForm()
-    artist = {
-        "id": 4,
-        "name": "Guns N Petals",
-        "genres": ["Rock n Roll"],
-        "city": "San Francisco",
-        "state": "CA",
-        "phone": "326-123-5000",
-        "website": "https://www.gunsnpetalsband.com",
-        "facebook_link": "https://www.facebook.com/GunsNPetals",
-        "seeking_venue": True,
-        "seeking_description": "Looking for shows to perform at in the San Francisco Bay Area!",
-        "image_link": "https://images.unsplash.com/photo-1549213783-8284d0336c4f?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=300&q=80",
-    }
     # TODO: populate form with fields from artist with ID <artist_id>
 
     stmt_select_artist_by_id = select(Artist).where(Artist.id == artist_id)
@@ -521,159 +507,7 @@ if not app.debug:
     app.logger.info("errors")
 
 
-# ------------ Check where should I move this script to populate db -----------#
-
-
-def db_add_initial_artists():
-
-    # Addint to db
-    # try:
-    #     db.session.add(artist_guns)
-    #     db.session.add(artist_quevedo)
-    #     db.session.add(artist_sax)
-    #     db.session.commit()
-    # except:
-    #     db.session.rollback()
-    # finally:
-    #     db.session.close()
-
-    genre_rock = Genre(name="Rock n Roll")
-    genre_jazz = Genre(name="Jazz")
-    genre_classical = Genre(name="Classical")
-
-    # Guns n Petals
-    artist_guns = Artist(
-        id=4,
-        name="Guns N Petals",
-        genres=[genre_rock],
-        city="San Francisco",
-        state="CA",
-        phone="326-123-5000",
-        website="https://www.gunsnpetalsband.com",
-        facebook_link="https://www.facebook.com/GunsNPetals",
-        seeking_venue=True,
-        seeking_description="Looking for shows to perform at in the San Francisco Bay Area!",
-        image_link="https://images.unsplash.com/photo-1549213783-8284d0336c4f?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=300&q=80",
-    )
-
-    # ------
-
-    # Matt Quevedo
-
-    artist_quevedo = Artist(
-        id=5,
-        name="Matt Quevedo",
-        genres=[genre_jazz],
-        city="New York",
-        state="NY",
-        phone="300-400-5000",
-        website="",
-        facebook_link="https://www.facebook.com/mattquevedo923251523",
-        seeking_venue=False,
-        seeking_description="",
-        image_link="https://images.unsplash.com/photo-1495223153807-b916f75de8c5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=334&q=80",
-    )
-
-    # ------
-
-    # The Wild Sax Band
-
-    artist_sax = Artist(
-        id=6,
-        name="The Wild Sax Band",
-        genres=[genre_jazz, genre_classical],
-        city="San Francisco",
-        state="CA",
-        phone="432-325-5432",
-        website="",
-        facebook_link="",
-        seeking_venue=False,
-        seeking_description="",
-        image_link="https://images.unsplash.com/photo-1558369981-f9ca78462e61?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=794&q=80",
-    )
-
-    # Addint to db
-    try:
-        db.session.add(genre_rock)
-        db.session.add(genre_jazz)
-        db.session.add(genre_classical)
-
-        db.session.add(artist_guns)
-        db.session.add(artist_quevedo)
-        db.session.add(artist_sax)
-        db.session.commit()
-    except:
-        db.session.rollback()
-    finally:
-        db.session.close()
-
-    # Adding extra fields that are not inclued in db model
-
-    artist_guns.past_shows = [
-        {
-            "venue_id": 1,
-            "venue_name": "The Musical Hop",
-            "venue_image_link": "https://images.unsplash.com/photo-1543900694-133f37abaaa5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=400&q=60",
-            "start_time": "2019-05-21T21:30:00.000Z",
-        }
-    ]
-    artist_guns.upcoming_shows = []
-    artist_guns.past_shows_count = 1
-    artist_guns.upcoming_shows_count = 0
-
-    artist_quevedo.past_shows = [
-        {
-            "venue_id": 3,
-            "venue_name": "Park Square Live Music & Coffee",
-            "venue_image_link": "https://images.unsplash.com/photo-1485686531765-ba63b07845a7?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=747&q=80",
-            "start_time": "2019-06-15T23:00:00.000Z",
-        }
-    ]
-    artist_quevedo.upcoming_shows = []
-    artist_quevedo.past_shows_count = 1
-    artist_quevedo.upcoming_shows_count = 0
-
-    artist_sax.upcoming_shows = [
-        {
-            "venue_id": 3,
-            "venue_name": "Park Square Live Music & Coffee",
-            "venue_image_link": "https://images.unsplash.com/photo-1485686531765-ba63b07845a7?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=747&q=80",
-            "start_time": "2035-04-01T20:00:00.000Z",
-        },
-        {
-            "venue_id": 3,
-            "venue_name": "Park Square Live Music & Coffee",
-            "venue_image_link": "https://images.unsplash.com/photo-1485686531765-ba63b07845a7?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=747&q=80",
-            "start_time": "2035-04-08T20:00:00.000Z",
-        },
-        {
-            "venue_id": 3,
-            "venue_name": "Park Square Live Music & Coffee",
-            "venue_image_link": "https://images.unsplash.com/photo-1485686531765-ba63b07845a7?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=747&q=80",
-            "start_time": "2035-04-15T20:00:00.000Z",
-        },
-    ]
-    artist_sax.past_shows = []
-    artist_sax.past_shows_count = 0
-    artist_sax.upcoming_shows_count = 3
-
-    data = [artist.__dict__ for artist in [artist_guns, artist_quevedo, artist_sax]]
-
-    return data
-
-
-# ----------------------------------------------------------------------------#
-# Launch.
-# ----------------------------------------------------------------------------#
-
 # Default port:
 if __name__ == "__main__":
     # data = db_add_initial_artists()
     app.run(debug=True)
-
-# Or specify port manually:
-"""
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
-"""
