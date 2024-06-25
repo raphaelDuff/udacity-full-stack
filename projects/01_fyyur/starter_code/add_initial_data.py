@@ -25,6 +25,7 @@ def add_initial_genres():
             Genre(name="Reggae"),
             Genre(name="Rock n Roll"),
             Genre(name="Soul"),
+            Genre(name="Swing"),
             Genre(name="Other"),
         ]
         db.session.bulk_save_objects(genres)
@@ -87,6 +88,77 @@ def add_initial_artists():
         db.session.commit()
 
 
+def add_initial_venues():
+
+    with app.app_context():
+        stmt_select_genre_rock = select(Genre).where(Genre.name == "Rock n Roll")
+        stmt_select_genre_jazz = select(Genre).where(Genre.name == "Jazz")
+        stmt_select_genre_classical = select(Genre).where(Genre.name == "Classical")
+        stmt_select_genre_folk = select(Genre).where(Genre.name == "Folk")
+        stmt_select_genre_reggae = select(Genre).where(Genre.name == "Reggae")
+        stmt_select_genre_swing = select(Genre).where(Genre.name == "Swing")
+        stmt_select_genre_rnb = select(Genre).where(Genre.name == "R&B")
+        stmt_select_genre_hiphop = select(Genre).where(Genre.name == "Hip-Hop")
+
+        genre_rock = db.session.scalars(stmt_select_genre_rock).one()
+        genre_jazz = db.session.scalars(stmt_select_genre_jazz).one()
+        genre_classical = db.session.scalars(stmt_select_genre_classical).one()
+        genre_folk = db.session.scalars(stmt_select_genre_folk).one()
+        genre_reggae = db.session.scalars(stmt_select_genre_reggae).one()
+        genre_swing = db.session.scalars(stmt_select_genre_swing).one()
+        genre_rnb = db.session.scalars(stmt_select_genre_rnb).one()
+        genre_hiphop = db.session.scalars(stmt_select_genre_hiphop).one()
+
+        venue_musical_hop = Venue(
+            id=1,
+            name="The Musical Hop",
+            genres=[genre_classical, genre_folk, genre_jazz, genre_reggae, genre_swing],
+            city="San Francisco",
+            state="CA",
+            address="1015 Folsom Street",
+            phone="123-123-1234",
+            website="https://www.themusicalhop.com",
+            facebook_link="https://www.facebook.com/TheMusicalHop",
+            seeking_talent=True,
+            seeking_description="Looking for shows to perform at in the San Francisco Bay Area!",
+            image_link="https://images.unsplash.com/photo-1543900694-133f37abaaa5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=400&q=60",
+        )
+        venue_dueling_pianos = Venue(
+            id=2,
+            name="The Dueling Pianos Bar",
+            genres=[genre_classical, genre_hiphop, genre_rnb],
+            city="New York",
+            state="NY",
+            address="335 Delancey Street",
+            phone="914-003-1132",
+            website="https://www.theduelingpianos.com",
+            facebook_link="https://www.facebook.com/theduelingpianos",
+            seeking_talent=False,
+            seeking_description=None,
+            image_link="https://images.unsplash.com/photo-1497032205916-ac775f0649ae?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=750&q=80",
+        )
+        venue_park_square = Venue(
+            id=3,
+            name="Park Square Live Music & Coffee",
+            genres=[genre_classical, genre_folk, genre_jazz, genre_rock],
+            city="San Francisco",
+            state="CA",
+            address="34 Whiskey Moore Ave",
+            phone="415-000-1234",
+            website="https://www.parksquarelivemusicandcoffee.com",
+            facebook_link="https://www.facebook.com/ParkSquareLiveMusicAndCoffee",
+            seeking_talent=False,
+            seeking_description=None,
+            image_link="https://images.unsplash.com/photo-1485686531765-ba63b07845a7?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=747&q=80",
+        )
+
+        db.session.add(venue_musical_hop)
+        db.session.add(venue_dueling_pianos)
+        db.session.add(venue_park_square)
+        db.session.commit()
+
+
 if __name__ == "__main__":
     add_initial_genres()
     add_initial_artists()
+    add_initial_venues()
