@@ -237,11 +237,12 @@ def show_artist(artist_id):
 #  ----------------------------------------------------------------
 @app.route("/artists/<int:artist_id>/edit", methods=["GET"])
 def edit_artist(artist_id):
-    form = ArtistForm()
+
     # TODO: populate form with fields from artist with ID <artist_id>
 
     stmt_select_artist_by_id = select(Artist).where(Artist.id == artist_id)
     data_artist_by_id = db.session.scalars(stmt_select_artist_by_id).one()
+    form = ArtistForm()
 
     return render_template(
         "forms/edit_artist.html", form=form, artist=data_artist_by_id

@@ -1,6 +1,7 @@
 from app import db, app
-from models import Artist, Genre, Venue
+from models import Artist, Genre, Show, Venue
 from sqlalchemy import select
+import dateutil.parser
 
 
 def add_initial_genres():
@@ -158,7 +159,50 @@ def add_initial_venues():
         db.session.commit()
 
 
+def add_initial_shows():
+
+    with app.app_context():
+
+        show_one = Show(
+            id=1,
+            venue_id=1,
+            artist_id=4,
+            start_time=dateutil.parser.isoparse("2019-05-21T21:30:00.000Z"),
+        )
+        show_two = Show(
+            id=2,
+            venue_id=3,
+            artist_id=5,
+            start_time=dateutil.parser.isoparse("2019-06-15T23:00:00.000Z"),
+        )
+        show_three = Show(
+            id=3,
+            venue_id=3,
+            artist_id=6,
+            start_time=dateutil.parser.isoparse("2035-04-01T20:00:00.000Z"),
+        )
+        show_four = Show(
+            id=4,
+            venue_id=3,
+            artist_id=6,
+            start_time=dateutil.parser.isoparse("2035-04-08T20:00:00.000Z"),
+        )
+        show_five = Show(
+            id=5,
+            venue_id=3,
+            artist_id=6,
+            start_time=dateutil.parser.isoparse("2035-04-15T20:00:00.000Z"),
+        )
+        db.session.add(show_one)
+        db.session.add(show_two)
+        db.session.add(show_three)
+        db.session.add(show_four)
+        db.session.add(show_five)
+        db.session.commit()
+
+
 if __name__ == "__main__":
     add_initial_genres()
     add_initial_artists()
     add_initial_venues()
+    add_initial_shows()
