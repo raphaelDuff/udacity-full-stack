@@ -2,7 +2,7 @@
 # Imports
 # ----------------------------------------------------------------------------#
 
-import json
+from collections import namedtuple
 from datetime import datetime
 import dateutil.parser
 import babel
@@ -32,8 +32,8 @@ from models import (
     Venue,
 )
 import os
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, select, String, Table
+from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import select, delete, func, literal
 from typing import Optional
 
 # ----------------------------------------------------------------------------#
@@ -92,38 +92,21 @@ def index():
 
 @app.route("/venues")
 def venues():
-    # TODO: replace with real venues data.
-    #       num_upcoming_shows should be aggregated based on number of upcoming shows per venue.
-    data = [
-        {
-            "city": "San Francisco",
-            "state": "CA",
-            "venues": [
-                {
-                    "id": 1,
-                    "name": "The Musical Hop",
-                    "num_upcoming_shows": 0,
-                },
-                {
-                    "id": 3,
-                    "name": "Park Square Live Music & Coffee",
-                    "num_upcoming_shows": 1,
-                },
-            ],
-        },
-        {
-            "city": "New York",
-            "state": "NY",
-            "venues": [
-                {
-                    "id": 2,
-                    "name": "The Dueling Pianos Bar",
-                    "num_upcoming_shows": 0,
-                }
-            ],
-        },
-    ]
-    return render_template("pages/venues.html", areas=data)
+
+    unique_city_areas = db.session.execute(
+        select(Venue.city, Venue.state).distinct().order_by(Venue.state, Venue.city)
+    )
+
+    AreasTuple = namedtuple("AreasTuple", "city state venues")
+
+    areas_list = []
+    for city, state in unique_city_areas:
+        venues = db.session.scalars(
+            select(Venue).where(Venue.city == city, Venue.state == state)
+        ).all()
+        areas_list.append(AreasTuple(city=city, state=state, venues=venues))
+
+    return render_template("pages/venues.html", areas=areas_list)
 
 
 @app.route("/venues/search", methods=["POST"])
@@ -151,10 +134,77 @@ def search_venues():
 @app.route("/venues/<int:venue_id>")
 def show_venue(venue_id):
     # shows the venue page with the given venue_id
-    # TODO: ADD the upcoming and past shows count
 
     stmt_select_venue_by_id = select(Venue).where(Venue.id == venue_id)
     venue_by_id = db.session.scalars(stmt_select_venue_by_id).one()
+
+    # Querying shows by artist and venues
+    stmt_upcoming_shows = (
+        select(
+            Show.start_time.label("start_time"),
+            Venue.id.label("venue_id"),
+            Venue.name.label("venue_name"),
+            Venue.image_link.label("venue_image_link"),
+            Artist.id.label("artist_id"),
+            Artist.name.label("artist_name"),
+            Artist.image_link.label("artist_image_link"),
+        )
+        .join(Artist, Show.artist_id == Artist.id)
+        .join(Venue, Show.venue_id == Venue.id)
+        .where(Venue.id == venue_id)
+        .where(Show.start_time >= datetime.now())
+    )
+
+    stmt_past_shows = (
+        select(
+            Show.start_time.label("start_time"),
+            Venue.id.label("venue_id"),
+            Venue.name.label("venue_name"),
+            Venue.image_link.label("venue_image_link"),
+            Artist.id.label("artist_id"),
+            Artist.name.label("artist_name"),
+            Artist.image_link.label("artist_image_link"),
+        )
+        .join(Artist, Show.artist_id == Artist.id)
+        .join(Venue, Show.venue_id == Venue.id)
+        .where(Venue.id == venue_id)
+        .where(Show.start_time < datetime.now())
+    )
+
+    upcoming_shows_interim = db.session.execute(stmt_upcoming_shows).all()
+
+    venue_by_id.upcoming_shows_count = len(upcoming_shows_interim)
+    upcoming_shows = []
+    if len(upcoming_shows_interim) > 0:
+        for show in upcoming_shows_interim:
+            future_shows_dict = {
+                "venue_id": show.venue_id,
+                "venue_name": show.venue_name,
+                "artist_id": show.artist_id,
+                "artist_name": show.artist_name,
+                "artist_image_link": show.artist_image_link,
+                "start_time": str(show.start_time),
+            }
+            upcoming_shows.append(future_shows_dict)
+
+    venue_by_id.upcoming_shows = upcoming_shows
+    past_shows_interim = db.session.execute(stmt_past_shows).all()
+    venue_by_id.past_shows_count = len(past_shows_interim)
+    past_shows = []
+
+    if len(past_shows_interim) > 0:
+        for show in past_shows_interim:
+            past_shows_dict = {
+                "venue_id": show.venue_id,
+                "venue_name": show.venue_name,
+                "artist_id": show.artist_id,
+                "artist_name": show.artist_name,
+                "artist_image_link": show.artist_image_link,
+                "start_time": str(show.start_time),
+            }
+            past_shows.append(past_shows_dict)
+
+    venue_by_id.past_shows = past_shows
 
     return render_template("pages/show_venue.html", venue=venue_by_id)
 
@@ -184,10 +234,16 @@ def create_venue_submission():
 
 @app.route("/venues/<venue_id>", methods=["DELETE"])
 def delete_venue(venue_id):
-    # TODO: Complete this endpoint for taking a venue_id, and using
-    # SQLAlchemy ORM to delete a record. Handle cases where the session commit could fail.
 
-    # BONUS CHALLENGE: Implement a button to delete a Venue on a Venue Page, have it so that
+    try:
+        db.session.execute(delete(Venue).where(Venue.id == venue_id))
+        db.session.commit()
+    except:
+        db.session.rollback()
+    finally:
+        db.session.close()
+
+    # TODO BONUS CHALLENGE: Implement a button to delete a Venue on a Venue Page, have it so that
     # clicking that button delete it from the db then redirect the user to the homepage
     return None
 
@@ -227,19 +283,81 @@ def search_artists():
 @app.route("/artists/<int:artist_id>")
 def show_artist(artist_id):
 
-    # TODO - ADD the upcoming and past shows count
-    stmt_select_upcoming_shows = select(Show).where(Show.start_time >= datetime.now())
-    upcoming_shows = db.session.scalars(stmt_select_upcoming_shows).all()
-    upcoming_shows_count = len(upcoming_shows)
-
     stmt_select_past_shows = select(Show).where(Show.start_time < datetime.now())
     past_shows = db.session.scalars(stmt_select_past_shows).all()
-    past_shows_count = len(past_shows)
 
     stmt_select_artist_by_id = select(Artist).where(Artist.id == artist_id)
-    data_by_id = db.session.scalars(stmt_select_artist_by_id).one()
+    artist_by_id = db.session.scalars(stmt_select_artist_by_id).one()
 
-    return render_template("pages/show_artist.html", artist=data_by_id)
+    # Querying shows by artist and venues
+    stmt_upcoming_shows_per_artist = (
+        select(
+            Show.start_time.label("start_time"),
+            Venue.id.label("venue_id"),
+            Venue.name.label("venue_name"),
+            Venue.image_link.label("venue_image_link"),
+            Artist.id.label("artist_id"),
+            Artist.name.label("artist_name"),
+            Artist.image_link.label("artist_image_link"),
+        )
+        .join(Artist, Show.artist_id == Artist.id)
+        .join(Venue, Show.venue_id == Venue.id)
+        .where(Artist.id == artist_id)
+        .where(Show.start_time >= datetime.now())
+    )
+
+    stmt_past_shows_per_artist = (
+        select(
+            Show.start_time.label("start_time"),
+            Venue.id.label("venue_id"),
+            Venue.name.label("venue_name"),
+            Venue.image_link.label("venue_image_link"),
+            Artist.id.label("artist_id"),
+            Artist.name.label("artist_name"),
+            Artist.image_link.label("artist_image_link"),
+        )
+        .join(Artist, Show.artist_id == Artist.id)
+        .join(Venue, Show.venue_id == Venue.id)
+        .where(Artist.id == artist_id)
+        .where(Show.start_time < datetime.now())
+    )
+
+    upcoming_shows_interim = db.session.execute(stmt_upcoming_shows_per_artist).all()
+
+    artist_by_id.upcoming_shows_count = len(upcoming_shows_interim)
+    upcoming_shows = []
+    if len(upcoming_shows_interim) > 0:
+        for show in upcoming_shows_interim:
+            future_shows_dict = {
+                "venue_id": show.venue_id,
+                "venue_name": show.venue_name,
+                "artist_id": show.artist_id,
+                "artist_name": show.artist_name,
+                "venue_image_link": show.venue_image_link,
+                "start_time": str(show.start_time),
+            }
+            upcoming_shows.append(future_shows_dict)
+
+    artist_by_id.upcoming_shows = upcoming_shows
+    past_shows_interim = db.session.execute(stmt_past_shows_per_artist).all()
+    artist_by_id.past_shows_count = len(past_shows_interim)
+    past_shows = []
+
+    if len(past_shows_interim) > 0:
+        for show in past_shows_interim:
+            past_shows_dict = {
+                "venue_id": show.venue_id,
+                "venue_name": show.venue_name,
+                "artist_id": show.artist_id,
+                "artist_name": show.artist_name,
+                "venue_image_link": show.venue_image_link,
+                "start_time": str(show.start_time),
+            }
+            past_shows.append(past_shows_dict)
+
+    artist_by_id.past_shows = past_shows
+
+    return render_template("pages/show_artist.html", artist=artist_by_id)
 
 
 #  Update
@@ -251,7 +369,7 @@ def edit_artist(artist_id):
 
     stmt_select_artist_by_id = select(Artist).where(Artist.id == artist_id)
     data_artist_by_id = db.session.scalars(stmt_select_artist_by_id).one()
-    form = ArtistForm()
+    form = ArtistForm(obj=data_artist_by_id)
 
     return render_template(
         "forms/edit_artist.html", form=form, artist=data_artist_by_id
@@ -260,10 +378,6 @@ def edit_artist(artist_id):
 
 @app.route("/artists/<int:artist_id>/edit", methods=["POST"])
 def edit_artist_submission(artist_id):
-    # TODO: take values from the form submitted, and update existing
-    # artist record with ID <artist_id> using the new attributes
-
-    # TODO: try to pre fill the values with the old values
 
     stmt_select_artist_by_id = select(Artist).where(Artist.id == artist_id)
     artist = db.session.scalars(stmt_select_artist_by_id).one()
@@ -287,28 +401,16 @@ def edit_artist_submission(artist_id):
         db.session.commit()
         flash("Artist updated successfully!", "success")
 
-    return redirect(url_for("show_artist", artist_id=artist.id))
+    return redirect(url_for("show_artist", form=form, artist_id=artist.id))
 
 
 @app.route("/venues/<int:venue_id>/edit", methods=["GET"])
 def edit_venue(venue_id):
-    form = VenueForm()
-    venue = {
-        "id": 1,
-        "name": "The Musical Hop",
-        "genres": ["Jazz", "Reggae", "Swing", "Classical", "Folk"],
-        "address": "1015 Folsom Street",
-        "city": "San Francisco",
-        "state": "CA",
-        "phone": "123-123-1234",
-        "website": "https://www.themusicalhop.com",
-        "facebook_link": "https://www.facebook.com/TheMusicalHop",
-        "seeking_talent": True,
-        "seeking_description": "We are on the lookout for a local artist to play every two weeks. Please call us.",
-        "image_link": "https://images.unsplash.com/photo-1543900694-133f37abaaa5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=400&q=60",
-    }
-    # TODO: populate form with values from venue with ID <venue_id>
-    return render_template("forms/edit_venue.html", form=form, venue=venue)
+
+    stmt_select_venue_by_id = select(Venue).where(Venue.id == venue_id)
+    data_venue_by_id = db.session.scalars(stmt_select_venue_by_id).one()
+    form = VenueForm(obj=data_venue_by_id)
+    return render_template("forms/edit_venue.html", form=form, venue=data_venue_by_id)
 
 
 @app.route("/venues/<int:venue_id>/edit", methods=["POST"])
