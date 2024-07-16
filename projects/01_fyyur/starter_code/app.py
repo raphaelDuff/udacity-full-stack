@@ -365,8 +365,6 @@ def show_artist(artist_id):
 @app.route("/artists/<int:artist_id>/edit", methods=["GET"])
 def edit_artist(artist_id):
 
-    # TODO: populate form with fields from artist with ID <artist_id>
-
     stmt_select_artist_by_id = select(Artist).where(Artist.id == artist_id)
     data_artist_by_id = db.session.scalars(stmt_select_artist_by_id).one()
     form = ArtistForm(obj=data_artist_by_id)
@@ -415,8 +413,30 @@ def edit_venue(venue_id):
 
 @app.route("/venues/<int:venue_id>/edit", methods=["POST"])
 def edit_venue_submission(venue_id):
-    # TODO: take values from the form submitted, and update existing
-    # venue record with ID <venue_id> using the new attributes
+
+    stmt_select_venue_by_id = select(Venue).where(Venue.id == venue_id)
+    venue = db.session.scalars(stmt_select_venue_by_id).one()
+
+    form = VenueForm()
+
+    if form.validate_on_submit():
+        stmt_select_genres = select(Genre).where(Genre.name.in_(form.genres.data))
+        genres = db.session.scalars(stmt_select_genres).all()
+        venue.name = form.name.data
+        venue.city = form.city.data
+        venue.state = form.state.data
+        venue.address = form.address.data
+        venue.phone = form.phone.data
+        venue.genres = genres
+        venue.facebook_link = form.facebook_link.data
+        venue.image_link = form.image_link.data
+        venue.website = form.website_link.data
+        venue.seeking_talent = form.seeking_talent.data
+        venue.seeking_description = form.seeking_description.data
+
+        db.session.commit()
+        flash("Venue updated successfully!", "success")
+
     return redirect(url_for("show_venue", venue_id=venue_id))
 
 

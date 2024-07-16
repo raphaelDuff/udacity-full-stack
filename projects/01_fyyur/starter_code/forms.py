@@ -115,6 +115,8 @@ class VenueForm(FlaskForm):
 
     seeking_description = StringField("seeking_description")
 
+    submit = SubmitField("Save")
+
 
 class ArtistForm(FlaskForm):
     name = StringField("name", validators=[DataRequired()])
