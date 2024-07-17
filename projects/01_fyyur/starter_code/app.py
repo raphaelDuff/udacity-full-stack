@@ -222,14 +222,43 @@ def create_venue_form():
 
 @app.route("/venues/create", methods=["POST"])
 def create_venue_submission():
-    # TODO: insert form data as a new Venue record in the db, instead
-    # TODO: modify data to be the data object returned from db insertion
 
-    # on successful db insert, flash success
-    flash("Venue " + request.form["name"] + " was successfully listed!")
-    # TODO: on unsuccessful db insert, flash an error instead.
-    # e.g., flash('An error occurred. Venue ' + data.name + ' could not be listed.')
-    # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
+    form = VenueForm()
+
+    if form.validate_on_submit():
+        try:
+            stmt_select_genres = select(Genre).where(Genre.name.in_(form.genres.data))
+            genres_from_form = db.session.scalars(stmt_select_genres).all()
+            max_id = db.session.query(func.max(Venue.id)).first()[0]
+            new_id = max_id + 1 if max_id else 1
+            venue = Venue(
+                id=new_id,
+                name=form.name.data,
+                city=form.city.data,
+                state=form.state.data,
+                address=form.address.data,
+                phone=form.phone.data,
+                genres=genres_from_form,
+                facebook_link=form.facebook_link.data,
+                image_link=form.image_link.data,
+                website=form.website_link.data,
+                seeking_talent=form.seeking_talent.data,
+                seeking_description=form.seeking_description.data,
+            )
+
+            db.session.add(venue)
+            db.session.commit()
+            # on successful db insert, flash success
+            flash("Venue " + request.form["name"] + " was successfully listed!")
+        except:
+            flash(
+                "An error occurred. Venue " + form.name.data + " could not be created."
+            )
+            db.session.rollback()
+            print(sys.exc_info())
+        finally:
+            db.session.close()
+
     return render_template("pages/home.html")
 
 
@@ -574,5 +603,4 @@ if not app.debug:
 
 # Default port:
 if __name__ == "__main__":
-    # data = db_add_initial_artists()
     app.run(debug=True)
