@@ -9,6 +9,7 @@ import babel
 from babel.dates import format_datetime as format_datetime_babel
 from flask import (
     Flask,
+    jsonify,
     render_template,
     request,
     Response,
@@ -288,25 +289,33 @@ def artists():
     return render_template("pages/artists.html", artists=data_artists)
 
 
-@app.route("/artists/search", methods=["POST"])
+@app.route("/artists/search")
 def search_artists():
-    # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
-    # seach for "A" should return "Guns N Petals", "Matt Quevado", and "The Wild Sax Band".
-    # search for "band" should return "The Wild Sax Band".
-    response = {
-        "count": 1,
-        "data": [
-            {
-                "id": 4,
-                "name": "Guns N Petals",
-                "num_upcoming_shows": 0,
-            }
-        ],
-    }
+
+    search_term = request.args.get("search_term")
+    print("search_term ueeee")
+
+    if search_term:
+        stmt_search_artists = select(Artist.id, Artist.name).where(
+            Artist.name.icontains(search_term)
+        )
+        search_results = db.session.execute(stmt_search_artists).all()
+        print(search_results)
+        for result in search_results:
+            print("uaheuhaueh")
+            print(result)
+        count_results = len(search_results)
+
+        results_data = [
+            {"id": result.id, "name": result.name} for result in search_results
+        ]
+        print("Result data: ", results_data)
+        response = {"count": count_results, "data": results_data}
+
     return render_template(
         "pages/search_artists.html",
         results=response,
-        search_term=request.form.get("search_term", ""),
+        search_term=search_term,
     )
 
 
