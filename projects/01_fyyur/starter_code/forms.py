@@ -17,6 +17,7 @@ class ShowForm(FlaskForm):
     start_time = DateTimeField(
         "start_time", validators=[DataRequired()], default=datetime.today()
     )
+    submit = SubmitField("Create Venue")
 
 
 class VenueForm(FlaskForm):
