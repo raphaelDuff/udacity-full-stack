@@ -12,7 +12,6 @@ from flask import (
     jsonify,
     render_template,
     request,
-    Response,
     flash,
     redirect,
     session,
@@ -25,18 +24,15 @@ import logging
 from logging import Formatter, FileHandler
 from forms import *
 from models import (
-    artist_genre_association,
-    venue_genre_association,
     Artist,
     Genre,
     Show,
     Venue,
 )
-import os
+
 from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy import select, delete, func, literal
+from sqlalchemy import select, delete, func
 import sys
-from typing import Optional
 
 # ----------------------------------------------------------------------------#
 # App Config.
@@ -111,25 +107,26 @@ def venues():
     return render_template("pages/venues.html", areas=areas_list)
 
 
-@app.route("/venues/search", methods=["POST"])
+@app.route("/venues/search")
 def search_venues():
-    # TODO: implement search on venues with partial string search. Ensure it is case-insensitive.
-    # seach for Hop should return "The Musical Hop".
-    # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
-    response = {
-        "count": 1,
-        "data": [
-            {
-                "id": 2,
-                "name": "The Dueling Pianos Bar",
-                "num_upcoming_shows": 0,
-            }
-        ],
-    }
+    search_term = request.args.get("search_term")
+
+    if search_term:
+        stmt_search_venue = select(Venue.id, Venue.name).where(
+            Venue.name.icontains(search_term)
+        )
+        search_results = db.session.execute(stmt_search_venue).all()
+        count_results = len(search_results)
+
+        results_data = [
+            {"id": result.id, "name": result.name} for result in search_results
+        ]
+        response = {"count": count_results, "data": results_data}
+
     return render_template(
         "pages/search_venues.html",
         results=response,
-        search_term=request.form.get("search_term", ""),
+        search_term=search_term,
     )
 
 
@@ -293,23 +290,17 @@ def artists():
 def search_artists():
 
     search_term = request.args.get("search_term")
-    print("search_term ueeee")
 
     if search_term:
         stmt_search_artists = select(Artist.id, Artist.name).where(
             Artist.name.icontains(search_term)
         )
         search_results = db.session.execute(stmt_search_artists).all()
-        print(search_results)
-        for result in search_results:
-            print("uaheuhaueh")
-            print(result)
         count_results = len(search_results)
 
         results_data = [
             {"id": result.id, "name": result.name} for result in search_results
         ]
-        print("Result data: ", results_data)
         response = {"count": count_results, "data": results_data}
 
     return render_template(
