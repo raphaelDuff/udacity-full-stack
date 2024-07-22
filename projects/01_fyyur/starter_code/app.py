@@ -450,7 +450,8 @@ def edit_venue_submission(venue_id):
     form = VenueForm()
 
     if form.validate_on_submit():
-        stmt_select_genres = select(Genre).where(Genre.name.in_(form.genres.data))
+        enum_genres_values = GenreEnum.values_from_names(form.genres.data)
+        stmt_select_genres = select(Genre).where(Genre.name.in_(enum_genres_values))
         genres = db.session.scalars(stmt_select_genres).all()
         venue.name = form.name.data
         venue.city = form.city.data
@@ -467,7 +468,9 @@ def edit_venue_submission(venue_id):
         db.session.commit()
         flash("Venue updated successfully!", "success")
 
-    return redirect(url_for("show_venue", venue_id=venue_id))
+        return redirect(url_for("show_venue", venue_id=venue_id))
+
+    return render_template("forms/edit_venue.html", form=form, venue=venue)
 
 
 #  Create Artist
